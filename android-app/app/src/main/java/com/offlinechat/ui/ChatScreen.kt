@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.offlinechat.chat.ChatEngine
 import com.offlinechat.model.ChatMessage
@@ -45,10 +46,12 @@ fun ChatScreen(engine: ChatEngine) {
     val statusText by engine.statusText.collectAsState()
 
     Row(modifier = Modifier.fillMaxSize()) {
-        // Sidebar
+        // Sidebar. Kept narrow on purpose: the test device is 720 px wide, and a
+        // 140 dp sidebar took almost half the screen and squeezed the chat area so
+        // hard that text wrapped one character per line.
         Column(
             modifier = Modifier
-                .width(140.dp)
+                .width(104.dp)
                 .fillMaxSize()
                 .background(Color(0xFF111827))
                 .padding(8.dp)
@@ -59,7 +62,9 @@ fun ChatScreen(engine: ChatEngine) {
             Text(
                 text = if (connected) "Online" else statusText,
                 color = if (connected) Color(0xFF22C55E) else Color(0xFFF59E0B),
-                style = MaterialTheme.typography.labelSmall
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
             Spacer(Modifier.height(12.dp))
 

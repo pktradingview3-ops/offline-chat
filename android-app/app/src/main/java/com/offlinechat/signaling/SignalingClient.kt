@@ -38,10 +38,18 @@ class SignalingClient(
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                // Log the real cause: without it a failed handshake looks identical to a
+                // clean close and there is nothing to debug from.
+                android.util.Log.w(
+                    "SignalingClient",
+                    "WebSocket failed for $url: ${t.javaClass.simpleName}: ${t.message}",
+                    t
+                )
                 onStateChange(false)
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                android.util.Log.i("SignalingClient", "WebSocket closed: $code $reason")
                 onStateChange(false)
             }
         })

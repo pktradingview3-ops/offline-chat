@@ -107,20 +107,31 @@ ok('public keys are exchanged (needed for E2E)',
 
 // 2. relay
 a.received.length = 0; b.received.length = 0;
-a.send(JSON.stringify({ type: 'offer', to: ID_B, from: ID_A, sdp: 'FAKE_OFFER_SDP' }));
-ok('offer is relayed to the target', !!(await find(b, 'offer')));
+a.send(JSON.stringify({ type: 'offer', to: ID_B, from: ID_A,
+  sdp: { type: 'offer', sdp: 'v=0\r\no=- 0 0 IN IP4 127.0.0.1\r\n' } }));
+const offerMsg = await find(b, 'offer');
+ok('offer is relayed to the target', !!offerMsg);
+ok('offer carries the SDP object (RTCSessionDescriptionInit shape)',
+   !!(offerMsg && offerMsg.sdp && typeof offerMsg.sdp.sdp === 'string'),
+   offerMsg ? `sdp=${JSON.stringify(offerMsg.sdp).slice(0, 60)}` : 'none');
 
-b.send(JSON.stringify({ type: 'answer', to: ID_A, from: ID_B, sdp: 'FAKE_ANSWER_SDP' }));
+b.send(JSON.stringify({ type: 'answer', to: ID_A, from: ID_B,
+  sdp: { type: 'answer', sdp: 'v=0\r\no=- 1 1 IN IP4 127.0.0.1\r\n' } }));
 ok('answer is relayed back', !!(await find(a, 'answer')));
 
-b.send(JSON.stringify({ type: 'ice-candidate', to: ID_A, candidate: 'candidate:1 udp 12345' }));
+b.send(JSON.stringify({ type: 'ice-candidate', to: ID_A,
+  candidate: { candidate: 'candidate:1 1 udp 2130706431 192.168.1.9 50000 typ host',
+               sdpMid: '0', sdpMLineIndex: 0 } }));
 const ice = await find(a, 'ice-candidate');
-ok('ICE candidate is relayed', !!ice && String(ice.candidate).includes('candidate'));
+ok('ICE candidate is relayed', !!ice && !!ice.candidate);
+ok('ICE candidate carries an object with sdpMid/sdpMLineIndex',
+   !!(ice && ice.candidate && ice.candidate.sdpMid !== undefined),
+   ice ? JSON.stringify(ice.candidate).slice(0, 70) : 'none');
 
 // 3. the server must not carry chat data
 const seen = JSON.stringify([...a.received, ...b.received]);
 ok('relayed frames contain no chat/ciphertext field',
-   !seen.includes('ciphertext') && !seen.includes('"message"'));
+   !seen.includes('ciphertext') && !seen.includes('"message"') && !seen.includes('WireEnvelope'));
 
 // 4. crypto: X25519 -> HKDF-SHA256 -> AES-256-GCM
 const sharedAB = nacl.scalarMult(kpA.secretKey, kpB.publicKey);

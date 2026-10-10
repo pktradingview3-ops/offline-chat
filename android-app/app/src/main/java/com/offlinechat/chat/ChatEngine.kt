@@ -130,7 +130,10 @@ class ChatEngine(private val context: Context) : ViewModel() {
                         )
                     )
                 } else {
-                    _statusText.value = "Disconnected"
+                    // A real, actionable reason instead of a bare "Disconnected" that
+                    // leaves the user with nothing to do.
+                    _statusText.value = "Host start nahi ho paya. Neeche apna signaling " +
+                        "URL daal kar \"Manually Connect\" try karein."
                 }
             }
         )
