@@ -110,7 +110,7 @@ cd web-app && npm run dev
 - [ ] Port 8080 reachable — `sudo ufw allow 8080` if a firewall is on
 - [ ] Server works with the machine's LAN IP, not just `localhost`
 
-## 7. Android app (separate toolchain)
+## 7. Android app
 
 ```bash
 cd android-app
@@ -119,14 +119,17 @@ export ANDROID_HOME=$HOME/Android/Sdk
 ./gradlew :app:assembleDebug
 ```
 
-- [ ] Gradle sync completes
-- [ ] APK builds
+- [x] Gradle sync completes (wrapper is committed)
+- [x] APK builds — `app/build/outputs/apk/debug/app-debug.apk`, 54 MB
+- [x] WebRTC native libs bundled for all four ABIs (arm64-v8a, armeabi-v7a, x86, x86_64)
 - [ ] Install on a phone and confirm it starts
 - [ ] Android host + browser client can talk to each other
 
-> **Not verified yet.** The Android app was never compiled — there is no Gradle
-> wrapper committed and it was written without a build run. Treat its first
-> `./gradlew` as the real test.
+> **Build verified, runtime not.** The first build failed with
+> `'onCreateSuccess' overrides nothing` in `ChatEngine.kt` — the `NoopSdpObserver`
+> base declared the parameter nullable while `org.webrtc.SdpObserver` declares
+> `onCreateSuccess(SessionDescription)`. Fixed; the APK now builds. It has not been
+> run on a device yet.
 
 ---
 
@@ -173,4 +176,4 @@ export ANDROID_HOME=$HOME/Android/Sdk
 | B → A reply | ✅ delivered |
 | Tampered ciphertext rejected | ✅ |
 | Wrong key rejected | ✅ |
-| Android build | ⏳ not run |
+| Android build (`assembleDebug`) | ✅ **54 MB APK, all 4 ABIs** |

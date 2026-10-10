@@ -356,7 +356,9 @@ class ChatEngine(private val context: Context) : ViewModel() {
 
 /** SdpObserver ke boilerplate empty overrides ke liye chhota helper. */
 private open class NoopSdpObserver : SdpObserver {
-    override fun onCreateSuccess(p0: SessionDescription?) {}
+    // Parameter type must match the subclass overrides exactly (non-null SessionDescription),
+    // otherwise Kotlin rejects the override: 'onCreateSuccess' overrides nothing.
+    override fun onCreateSuccess(p0: SessionDescription) {}
     override fun onSetSuccess() {}
     override fun onCreateFailure(p0: String?) {}
     override fun onSetFailure(p0: String?) {}

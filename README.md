@@ -85,13 +85,17 @@ Expected: **16/16 passed**.
 | Android client | Kotlin + Jetpack Compose, minSdk 26 |
 | Verified on | Kali Linux, Node v24.21.0 — web client + signaling server |
 | Test suite | `scripts/e2e-test.mjs` — 16 checks, signaling + crypto |
-| Android build | **not yet verified** (no Gradle wrapper committed) |
+| Android build | **verified** — `./gradlew :app:assembleDebug` builds a 54 MB debug APK |
 
-### Android status — read this
+### Android status
 
-The Android client is **written but never compiled**. It was authored without a
-build run, so treat its first `./gradlew :app:assembleDebug` as the real test.
-The web client and the signaling server are verified end-to-end.
+The Android client **compiles** (verified). It had never been built before; the first
+build failed with `'onCreateSuccess' overrides nothing` in `ChatEngine.kt`, because
+the `NoopSdpObserver` base declared the parameter nullable while
+`org.webrtc.SdpObserver` declares `onCreateSuccess(SessionDescription)`. Fixed, and
+the APK now builds with the WebRTC native libraries bundled for all four ABIs.
+
+It has **not** yet been run on a physical device or tested against the web client.
 
 ## Security model
 
