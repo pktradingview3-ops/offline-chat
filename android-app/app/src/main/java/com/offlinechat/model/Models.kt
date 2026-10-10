@@ -56,5 +56,11 @@ data class ChatMessage(
     val recipientId: String,
     val timestamp: Long,
     val text: String,
-    val self: Boolean
+    val self: Boolean,
+    /**
+     * False when the message never actually left the device (no open DataChannel to the
+     * recipient). Without this the bubble renders as if it were sent while nothing went
+     * out — the single most confusing failure mode in a LAN chat app.
+     */
+    val delivered: Boolean = true
 )

@@ -10,6 +10,10 @@ the network.
 Built with **TypeScript + React + Vite** (web), **Kotlin + Jetpack Compose**
 (Android) and a **Node.js WebSocket** signaling relay.
 
+>  **App kaise kaam karta hai?** Poora flow chart Hinglish me:
+> [`docs/FLOWCHART.md`](docs/FLOWCHART.md) (8 Mermaid diagrams, GitHub par render hote
+> hain) aur ek share karne layak image [`docs/flowchart.svg`](docs/flowchart.svg).
+
 > **The signaling node never sees your messages.** It relays SDP offers/answers
 > and ICE candidates only. Chat text goes over a direct encrypted WebRTC
 > DataChannel between peers. There is no chat-message field in the protocol, and
@@ -43,7 +47,9 @@ Built with **TypeScript + React + Vite** (web), **Kotlin + Jetpack Compose**
 signaling-server/   Node.js WebSocket relay — discovery + WebRTC handshake only
 web-app/            React + TypeScript + Vite browser client (PWA)
 android-app/        Kotlin + Jetpack Compose Android client
-scripts/            e2e-test.mjs — protocol + crypto test suite
+scripts/            e2e-test.mjs          — signaling protocol + crypto suite (18 checks)
+                    android-interop-test.mjs — Android↔web crypto & wire-protocol suite
+docs/               FLOWCHART.md (Mermaid) + flowchart.svg — Hinglish flow charts
 ```
 
 ## Quick start
@@ -68,13 +74,22 @@ Open the app in **two** tabs (or on two devices on the same Wi-Fi), enter the
 signaling URL — `ws://127.0.0.1:8080` locally, `ws://<LAN-IP>:8080` from another
 device — and press **Connect**.
 
-### 3. Run the test suite
+### 3. Run the test suites
 
 ```bash
-node scripts/e2e-test.mjs      # signaling server must be running
+node scripts/e2e-test.mjs            # signaling server must be running
+node scripts/android-interop-test.mjs   # self-contained — spawns its own server
 ```
 
-Expected: **16/16 passed**.
+Expected: **18/18** and **33/33 passed**.
+
+The second suite matters because the Android client cannot be compiled without a JDK,
+the Android SDK and Google Maven. It therefore proves the two things that would
+silently break cross-device chat without needing a device at all: that
+`CryptoBox.kt` (Bouncy Castle) and `web-app/src/crypto.ts` (tweetnacl + WebCrypto)
+derive the same key and decrypt each other's ciphertext (checked against the RFC 7748
+known-answer vector), and that the JSON the Kotlin models emit is exactly what the
+signaling relay and the browser parse.
 
 ## Built and tested on
 
@@ -84,18 +99,36 @@ Expected: **16/16 passed**.
 | Signaling node | Node.js + `ws` |
 | Android client | Kotlin + Jetpack Compose, minSdk 26 |
 | Verified on | Kali Linux, Node v24.21.0 — web client + signaling server |
-| Test suite | `scripts/e2e-test.mjs` — 16 checks, signaling + crypto |
-| Android build | **verified** — `./gradlew :app:assembleDebug` builds a 54 MB debug APK |
+| Test suites | `e2e-test.mjs` (18) + `android-interop-test.mjs` (33) |
+| Android build | **verified** — `./gradlew :app:assembleDebug` builds a debug APK |
 
-### Android status
+### Android status — honestly
 
-The Android client **compiles** (verified). It had never been built before; the first
-build failed with `'onCreateSuccess' overrides nothing` in `ChatEngine.kt`, because
-the `NoopSdpObserver` base declared the parameter nullable while
-`org.webrtc.SdpObserver` declares `onCreateSuccess(SessionDescription)`. Fixed, and
-the APK now builds with the WebRTC native libraries bundled for all four ABIs.
+The Android client **compiles** and its crypto/wire-protocol interop with the web
+client is **proven by test** (33/33). It has **not** been run on a physical device in
+this environment, because building an APK needs a JDK, the Android SDK and Google
+Maven — none of which exist here. `./gradlew :app:assembleDebug` on your machine is
+the remaining verification step; see
+[`TESTING_GUIDE.md`](TESTING_GUIDE.md) section 5.
 
-It has **not** yet been run on a physical device or tested against the web client.
+This revision fixed a **silent, fatal bug** that no compile could have caught. The
+embedded host used NanoHTTPD's no-argument `start()`, which implies a 5-second socket
+read timeout applied to *every* accepted socket; NanoWSD's blocking read loop then hit
+a `SocketTimeoutException` on any quiet connection and its `finally` block
+force-closed the peer. In practice: the Android host dropped every peer five seconds
+after they stopped talking. The host now binds with `start(0, true)` — no read
+timeout — plus a heartbeat that evicts genuinely dead sockets.
+`android-interop-test.mjs` contains a regression guard that fails if anyone puts the
+bare `start()` back.
+
+Also fixed: misleading "Host start nahi ho paya" shown for every disconnect in client
+mode; no reconnection at all (a dropped socket was terminal); a latent
+`UninitializedPropertyAccessException` from a `lateinit` connection entry captured by
+the WebRTC observer; ICE candidates dropped when they arrived before
+`setRemoteDescription` finished (fatal on a LAN, where host candidates are the only
+candidates); a double-host race when two phones opened at once; lost peer-list entries
+after a reconnect; and chat UI that neither auto-scrolled nor survived rotation.
+Host re-election was added, so a vanished host no longer strands everyone.
 
 ## Security model
 
@@ -110,10 +143,12 @@ It has **not** yet been run on a physical device or tested against the web clien
 
 ## Documentation
 
+- [`docs/FLOWCHART.md`](docs/FLOWCHART.md) — poora working flow, Hinglish me, 8 Mermaid
+  diagrams + [`docs/flowchart.svg`](docs/flowchart.svg).
 - [`TESTING_GUIDE.md`](TESTING_GUIDE.md) — ordered verification steps and the last
   recorded results.
-- [`android-app/README.md`](android-app/README.md) — Android architecture and role
-  auto-detection.
+- [`android-app/README.md`](android-app/README.md) — Android architecture, role
+  auto-detection, aur is revision ke bug-fixes ki poori list.
 
 ## License
 
