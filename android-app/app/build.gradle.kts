@@ -14,6 +14,18 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
+        // Optional single-ABI build, for handing the APK to a phone directly.
+        // A full build bundles the WebRTC native library for four ABIs and comes out
+        // around 54 MB, which is over Telegram's 50 MB bot upload limit.
+        //   ./gradlew :app:assembleDebug -PabiFilter=arm64-v8a
+        // With no -PabiFilter the build is unchanged and includes every ABI.
+        (project.findProperty("abiFilter") as String?)
+            ?.split(',')
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { abis -> ndk { abiFilters.addAll(abis) } }
     }
 
     buildTypes {
