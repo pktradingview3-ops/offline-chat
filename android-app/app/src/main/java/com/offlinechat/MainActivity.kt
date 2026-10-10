@@ -9,7 +9,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -42,7 +42,10 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun AppRoot(engine: ChatEngine) {
-    var started by remember { mutableStateOf(false) }
+    // rememberSaveable: with a plain `remember`, rotating the phone threw away `started`
+    // and dumped the user back on the setup screen while the engine kept running in the
+    // (surviving) ViewModel — so the chat vanished but the connection stayed alive.
+    var started by rememberSaveable { mutableStateOf(false) }
 
     if (!started) {
         SetupScreen(

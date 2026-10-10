@@ -85,6 +85,27 @@ node scripts/e2e-test.mjs
 - [ ] Disconnect broadcasts `leave`
 - [ ] Offer to an unknown peer is ignored (no crash)
 
+## 4b. Android <-> web interop test (self-contained)
+
+```bash
+node scripts/android-interop-test.mjs     # spawns its own server on a free port
+```
+
+- [ ] **33/33 passed**
+- [ ] Source guards: no bare NanoHTTPD `start()`, `start(0, ...)`, socket-identity check
+  in `onClose`, ICE queue present, `join` re-sent on socket open
+- [ ] X25519 matches the **RFC 7748 known-answer vector** on both the Node side
+  (standing in for Bouncy Castle) and the tweetnacl side
+- [ ] Android-side and web-side derive the **identical** AES-256 key (HKDF-SHA256)
+- [ ] Android-encrypted ciphertext decrypts on the web side, and vice versa
+- [ ] Tampered ciphertext and wrong keys are **rejected** both ways
+- [ ] The exact JSON the Kotlin models emit is relayed correctly by the live server,
+  including the browser's extra `usernameFragment` field
+- [ ] No chat/ciphertext field ever passes through the signaling relay
+
+> This is the closest this environment can get to testing the Android client: it cannot
+> be compiled without a JDK, the Android SDK and Google Maven.
+
 ## 5. Two real peers in a browser (manual, the full app)
 
 ```bash
@@ -123,13 +144,15 @@ export ANDROID_HOME=$HOME/Android/Sdk
 - [x] APK builds — `app/build/outputs/apk/debug/app-debug.apk`, 54 MB
 - [x] WebRTC native libs bundled for all four ABIs (arm64-v8a, armeabi-v7a, x86, x86_64)
 - [ ] Install on a phone and confirm it starts
+- [ ] Two phones: **Automatic Start** on both; second should auto-discover the first
+- [ ] Kill the host phone; within ~20s the other phone should elect/re-find a host
 - [ ] Android host + browser client can talk to each other
 
-> **Build verified, runtime not.** The first build failed with
-> `'onCreateSuccess' overrides nothing` in `ChatEngine.kt` — the `NoopSdpObserver`
-> base declared the parameter nullable while `org.webrtc.SdpObserver` declares
-> `onCreateSuccess(SessionDescription)`. Fixed; the APK now builds. It has not been
-> run on a device yet.
+> **Build verified earlier, runtime still unverified here.** The current revision also
+> passed `scripts/android-interop-test.mjs` 33/33, which proves the crypto and the wire
+> protocol without needing a device — but the remaining unknown (NanoHTTPD behaviour on
+> a real socket, NSD on a real radio) genuinely needs hardware. See
+> `android-app/README.md` for the list of bugs this revision fixed and why.
 
 ---
 
@@ -147,14 +170,16 @@ export ANDROID_HOME=$HOME/Android/Sdk
 
 ## Known limitations (honest)
 
-- **The signaling node is a single point of failure.** If that machine goes down,
-  a new session needs the node restarted somewhere. Auto host-election is not
-  implemented.
+- **The signaling node is a single point of failure** for *new* peers. Clients now
+  retry with backoff and **elect a new host** when theirs disappears, but in-flight
+  re-election can briefly split a network of more than two peers.
 - **Guest/isolated Wi-Fi** (client isolation on, as in many public/office
   networks) prevents peer discovery — a network limitation, not an app bug.
 - **No persistence by design.** Refresh means a fresh anonymous identity and empty
   history. Nothing is written to disk.
-- **The Android app is unverified** — never compiled.
+- **The Android app is unverified on hardware** — compile-verified earlier, and its
+  crypto/wire protocol verified by test (33/33), but never run on a device in this
+  environment.
 - **The wire-tap test in the browser** (capturing the DataChannel frame to show it
   is ciphertext) was not completed; the Node test proves the same property for the
   signaling layer, and the crypto layer is proven by the round-trip and
@@ -168,7 +193,9 @@ export ANDROID_HOME=$HOME/Android/Sdk
 |---|---|
 | `npm install` (both) | ✅ 353 packages, no errors |
 | `npm run build` | ✅ `tsc -b` clean, `✓ built in 4.64s` |
-| `scripts/e2e-test.mjs` | ✅ **16/16 passed** |
+| `scripts/e2e-test.mjs` | ✅ **18/18 passed** |
+| `scripts/android-interop-test.mjs` | ✅ **33/33 passed** (crypto KAT + live wire protocol) |
+| Mermaid diagrams in `docs/FLOWCHART.md` | ✅ 8/8 parse valid |
 | Signaling server on :8080 | ✅ listening |
 | Vite dev server on :5173 | ✅ HTTP 200, title `Offline Chat` |
 | Two browser peers discovered each other | ✅ both saw each other's anon id |
