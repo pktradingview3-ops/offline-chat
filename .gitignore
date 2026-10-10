@@ -1,0 +1,32 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+dist-ssr/
+build/
+.gradle/
+*.apk
+*.aab
+
+# local / machine-specific
+*.local
+local.properties
+.DS_Store
+
+# logs and runtime data
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# editor
+.idea/
+.vscode/
+*.iml
+tsconfig.tsbuildinfo
+*.tsbuildinfo

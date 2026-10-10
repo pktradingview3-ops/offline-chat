@@ -1,0 +1,13 @@
+{
+  "name": "offline-chat-signaling",
+  "version": "1.0.0",
+  "description": "Local-network-only WebRTC signaling relay for Offline Chat App. In-memory only — no logging, no persistence, no internet connection required.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Local network communication — internet ki zaroorat nahi, sirf LAN par -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+
+    <application
+        android:allowBackup="false"
+        android:label="Offline Chat"
+        android:theme="@style/Theme.OfflineChat"
+        android:usesCleartextTraffic="true">
+        <!-- usesCleartextTraffic zaroori hai kyunki LAN par plain ws:// (non-TLS) use ho raha hai -->
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="Offline Chat">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
