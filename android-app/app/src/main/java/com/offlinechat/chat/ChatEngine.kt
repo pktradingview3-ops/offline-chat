@@ -529,7 +529,15 @@ class ChatEngine(private val context: Context) : ViewModel() {
             }
 
             override fun onRenegotiationNeeded() {}
-            override fun onAddTrack(receiver: RtpReceiver?, mediaStreams: Array<out MediaStream>?) {}
+            override fun onAddTrack(receiver: RtpReceiver?, mediaStreams: Array<out MediaStream>?) {
+                val track = receiver?.track()
+                if (track is org.webrtc.VideoTrack) {
+                    _remoteVideoTrack.value = track
+                    log("remote VIDEO track mila from $peerId")
+                } else if (track != null) {
+                    log("remote track mila from $peerId: ${track.kind()}")
+                }
+            }
         }
 
         val pc = WebRtcManager.createPeerConnection(observer)

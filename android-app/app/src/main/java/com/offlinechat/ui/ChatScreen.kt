@@ -48,6 +48,53 @@ import java.util.Locale
 
 private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
+/**
+ * PTT mic button — press-and-hold to record, release to send.
+ *
+ * `awaitEachGesture` me parent scroll se gesture cancel ho jaata tha, isliye
+ * down/up manually track karte hain. Down consume karke scroll se bhi bach-te hain.
+ */
+@Composable
+private fun PttMicButton(
+    isRecording: Boolean,
+    duration: Int,
+    onStart: () -> Unit,
+    onStop: () -> Unit
+) {
+    val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    var pressing by remember { mutableStateOf(false) }
+
+    androidx.compose.material3.IconButton(
+        onClick = { },
+        interactionSource = interaction,
+        modifier = Modifier
+            .size(48.dp)
+            .background(
+                if (isRecording) Palette.NeonRed else Palette.Surface3,
+                CircleShape
+            )
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    down.consume()
+                    pressing = true
+                    onStart()
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        if (event.changes.all { !it.pressed }) break
+                    }
+                    pressing = false
+                    onStop()
+                }
+            }
+    ) {
+        Text(
+            text = if (isRecording) "⏺" else "🎤",
+            fontSize = 20.sp
+        )
+    }
+}
+
 @Composable
 fun ChatScreen(engine: ChatEngine) {
     // rememberSaveable, not remember: a plain `remember` loses the open conversation on
